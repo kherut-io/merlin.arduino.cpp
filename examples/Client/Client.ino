@@ -3,9 +3,17 @@
 Merlin::Client c;
 
 void setup() {
+  pinMode(5, INPUT_PULLUP);
+  delay(3500);
+
+  bool btnState = !digitalRead(5);
+
   Serial.begin(115200);
 
-  c.setUp("orangepizero", 8080, "", true);
+  Serial.print("Reset settings: ");
+  Serial.println(btnState);
+
+  c.setUp("orangepizero", 8080, "", btnState);
   c.runWFM();
 
   Serial.println("Connected.");
@@ -19,6 +27,7 @@ void setup() {
   Serial.println(c.requestND());
 
   pinMode(2, OUTPUT);
+  
 }
 
 void loop() {
