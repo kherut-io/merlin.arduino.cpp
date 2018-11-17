@@ -80,7 +80,7 @@ void Merlin::Client::runHC() {
     strcat(url, _merlinBrainName);
     strcat(url, ":");
     strcat(url, mbPortStr);
-    strcat(url, "/control/devices/new/");
+    strcat(url, "/control/device/new/");
     strcat(url, _localIP);
     strcat(url, "/");
     strcat(url, _deviceName);
@@ -188,7 +188,7 @@ void Merlin::Server::runHC() {
     strcat(url, _merlinBrainName);
     strcat(url, ":");
     strcat(url, mbPortStr);
-    strcat(url, "/control/devices/new/");
+    strcat(url, "/control/device/new/");
     strcat(url, _localIP);
     strcat(url, "/");
     strcat(url, _deviceName);
