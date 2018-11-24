@@ -9,6 +9,7 @@
   https://github.com/kherut-io/merlin.ino
 */
 
+#define blue 2
 #define white 14
 #define button 16
 
@@ -16,6 +17,8 @@
 
 //Declare Server globally so it's possible to access it in both setup() and loop()
 Merlin::Server s;
+
+bool statusClicked = false;
 
 void setup() {
   //Config
@@ -43,6 +46,9 @@ void setup() {
   //Retrieve port to connect to via TCP
   s.requestND();
   
+  //Print device ID
+  Serial.println(s.getID());
+  
   //Really?
   s.begin();
 }
@@ -52,10 +58,17 @@ void loop() {
   if (!s.connected()) {
     s.connect();
   }
+  
   else {
-    //If the buffer's not empty, print it like it's your first time
+    //If buffer's not empty, print it
     if (s.available() > 0) {
       Serial.write(s.read());
     }
+  }
+
+  if(!digitalRead(button) && !statusClicked) {
+    statusClicked = true;
+
+    s.status("OK");
   }
 }

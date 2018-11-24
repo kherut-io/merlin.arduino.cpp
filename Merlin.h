@@ -51,6 +51,7 @@ namespace Merlin {
     char _deviceName[64];
     char _merlinBrainName[64];
     char _localIP[32];
+    char _id[32];
     unsigned short int _merlinBrainPort;
     bool _resetSettings;
     WiFiManager* _wm;
@@ -59,6 +60,9 @@ namespace Merlin {
     WiFiClient _tcpClient;
     int _tcpPort;
     int _httpCode;
+
+    void _append(char*, char);
+    char* _split(char*, char, int);
 
     public:
       Server();
@@ -69,11 +73,13 @@ namespace Merlin {
       void requestND();
       void begin();
       void connect();
+      void status(char*);
       bool connected();
       int available();
       char read();
       char* getDeviceName();
       char* getIP();
+      char* getID();
   };
 }
  

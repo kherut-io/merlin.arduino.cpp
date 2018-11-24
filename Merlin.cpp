@@ -80,14 +80,11 @@ void Merlin::Client::runHC() {
     strcat(url, _merlinBrainName);
     strcat(url, ":");
     strcat(url, mbPortStr);
-    strcat(url, "/control/device/new/");
+    strcat(url, "/control/devices/new/");
     strcat(url, _localIP);
     strcat(url, "/");
     strcat(url, _deviceName);
     strcat(url, "/CLIENT");
-
-    /////
-    Serial.println(url);
 
     _hc->begin(url);
 }
@@ -95,7 +92,6 @@ void Merlin::Client::runHC() {
 char* Merlin::Client::requestND() {
     int code = _hc->GET();
 
-    /////
     Serial.print("HTTP code: ");
     Serial.println(code);
     Serial.print("HTTP code (string): ");
@@ -134,6 +130,36 @@ Merlin::Server::Server() {
     strcpy(_deviceName, deviceName);
 
     Serial.println("Created");
+}
+
+void Merlin::Server::_append(char* s, char c) {
+    int len = strlen(s);
+
+    s[len] = c;
+    s[len + 1] = '\0';
+}
+
+char* Merlin::Server::_split(char* str, char delimiter, int index) {
+    char* ret = (char*) malloc(strlen(str) * sizeof(char));
+    bzero(ret, strlen(str));
+
+    int delimitersPassed = 0;
+
+    for(int i = 0; i < strlen(str); i++) {
+        if(str[i] == delimiter) {
+            if(index == delimitersPassed)
+                return ret;
+
+            delimitersPassed++;
+
+            memset(ret, 0, sizeof ret);
+        }
+
+        if(delimitersPassed == index && str[i] != delimiter)
+            _append(ret, str[i]);
+    }
+
+    return ret;
 }
 
 void Merlin::Server::setUp(char* merlinBrainName, unsigned short int merlinBrainPort, bool resetSettings, char* deviceName) {
@@ -188,7 +214,7 @@ void Merlin::Server::runHC() {
     strcat(url, _merlinBrainName);
     strcat(url, ":");
     strcat(url, mbPortStr);
-    strcat(url, "/control/device/new/");
+    strcat(url, "/control/devices/new/");
     strcat(url, _localIP);
     strcat(url, "/");
     strcat(url, _deviceName);
@@ -208,7 +234,13 @@ void Merlin::Server::requestND() {
 
     _hc->end();
 
-    _tcpPort = atoi(content);
+    char portStr[6];
+    bzero(portStr, 6);
+
+    strcpy(_id, _split(content, '!', 0));
+    strcpy(portStr, _split(content, '!', 1));
+
+    _tcpPort = atoi(portStr);
 }
 
 void Merlin::Server::begin() {
@@ -218,6 +250,43 @@ void Merlin::Server::begin() {
 
 void Merlin::Server::connect() {
     _tcpClient = _tcpServer->available();
+}
+
+void Merlin::Server::status(char* value) {
+    char url[256];
+    bzero(url, 256);
+
+    char mbPortStr[8];
+    bzero(mbPortStr, 8);
+
+    sprintf(mbPortStr, "%hu", _merlinBrainPort);
+
+    strcat(url, "http://");
+    strcat(url, _merlinBrainName);
+    strcat(url, ":");
+    strcat(url, mbPortStr);
+    strcat(url, "/control/devices/status/");
+    strcat(url, _id);
+    strcat(url, "/");
+    strcat(url, value);
+
+    _hc->begin(url);
+
+    _httpCode = _hc->GET();
+
+    char content[256];
+    bzero(content, 256);
+
+    if(_httpCode != 200) {
+        if(strcmp(content, "OK") != 0) {
+            Serial.print("HTTP code: ");
+            Serial.println(_httpCode);
+            Serial.print("Response: ");
+            Serial.println(content);
+        }
+    }
+
+    _hc->end();
 }
 
 bool Merlin::Server::connected() {
@@ -238,4 +307,8 @@ char* Merlin::Server::getDeviceName() {
 
 char* Merlin::Server::getIP() {
     return _localIP;
+}
+
+char* Merlin::Server::getID() {
+    return _id;
 }
