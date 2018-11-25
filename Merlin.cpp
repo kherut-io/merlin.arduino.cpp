@@ -289,12 +289,41 @@ void Merlin::Server::status(char* value) {
     _hc->end();
 }
 
+int Merlin::Server::readBytes(char* buffer, int length) {
+    int i;
+
+    for(i = 0; available() > 0 && i < length; i++)
+        buffer[i] = read();
+
+    return i;
+}
+
 bool Merlin::Server::connected() {
     return _tcpClient.connected();
 }
 
 int Merlin::Server::available() {
     return _tcpClient.available();
+}
+
+int Merlin::Server::write(char val) {
+    return _tcpClient.write(val);
+}
+
+int Merlin::Server::write(String str) {
+    int len = str.length();
+
+    char buf[len + 1];
+    bzero(buf, len + 1);
+
+    for(int i = 0; i < len; i++)
+        buf[i] = str[i];
+
+    return write(buf, len);
+}
+
+int Merlin::Server::write(char* buf, int len) {
+    return _tcpClient.write(buf, len);
 }
 
 char Merlin::Server::read() {
@@ -311,4 +340,13 @@ char* Merlin::Server::getIP() {
 
 char* Merlin::Server::getID() {
     return _id;
+}
+
+String Merlin::Server::readString() {
+    String ret;
+
+    while(available() > 0)
+        ret.concat(read());
+
+    return ret;
 }

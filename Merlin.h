@@ -76,10 +76,15 @@ namespace Merlin {
       void status(char*);
       bool connected();
       int available();
+      int readBytes(char*, int);
+      int write(char);
+      int write(String);
+      int write(char*, int);
       char read();
       char* getDeviceName();
       char* getIP();
       char* getID();
+      String readString();
   };
 }
  

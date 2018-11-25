@@ -2,7 +2,7 @@
   merlin.ino - Server example
 
   created 2018
-  by Adam K. Pisula
+  by Adam Pisula
 
   This example code is in the public domain.
 
@@ -19,6 +19,7 @@
 Merlin::Server s;
 
 bool statusClicked = false;
+String str = "";
 
 void setup() {
   //Config
@@ -61,8 +62,12 @@ void loop() {
   
   else {
     //If buffer's not empty, print it
-    if (s.available() > 0) {
-      Serial.write(s.read());
+    if(s.available() > 0) {
+      str = s.readString();
+      Serial.println(str);
+      str.toUpperCase();
+      
+      s.write(String("ok_") + str);
     }
   }
 
