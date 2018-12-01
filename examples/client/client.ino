@@ -1,5 +1,5 @@
 /*
-  merlin.ino - Server example
+  merlin.ino - Client example
 
   created 2018
   by Adam Pisula
@@ -15,8 +15,8 @@
 
 #include <Merlin.h>
 
-//Declare Server globally so it's possible to access it in both setup() and loop()
-Merlin::Server s;
+//Declare Client globally so it's possible to access it in both setup() and loop()
+Merlin::Client c;
 
 bool statusSent = false;
 String str = "";
@@ -35,61 +35,61 @@ void setup() {
 
   //If they do, reset settings and thereby run WiFiManager
   digitalWrite(blue, !btnState);
-  
-  s.setUp("laptop-adampisula", 8080, btnState);
-  s.runWFM();
+
+  c.setUp("laptop-adampisula", 8080, btnState);
+  c.runWFM();
 
   delay(500);
 
   //That part is self-explanatory, I think
-  Serial.println(s.getDeviceName());
-  Serial.println(s.getIP());
+  Serial.println(c.getDeviceName());
+  Serial.println(c.getIP());
 
   //Run HttpClient
-  s.runHC();
+  c.runHC();
   //Retrieve port to connect to via TCP
-  s.requestND();
+  c.requestND();
   
   //Print device ID
-  Serial.println(s.getID());
+  Serial.println(c.getID());
   
   //Really?
-  s.begin();
+  c.begin();
 
   Serial.println();
 }
 
 void loop() {
   //Wait for a TCP client to connect
-  if (!s.connected()) {
+  if (!c.connected()) {
     delay(350);
     
     Serial.print(".");
 
-    s.connect();
+    c.connect();
   }
   
   else {
-    //If buffer's not empty, print it
-    if(s.available() > 0) {
-      str = s.readString();
-      
-      Serial.print(str);
-      
-      str.toUpperCase();
-      
-      s.write(String("ok_") + str);
+    if(Serial.available() > 0) {
+      str = Serial.readString();
+
+      c.write(str);
+
+      str = "";
     }
+
+    while(c.available() > 0)
+      Serial.write(c.read());
   }
 
   if(!digitalRead(button)) {
     if(!statusSent) {
       statusSent = true;
-      s.status("OK");
+      c.status("OK");
     }
 
-    if(!s.connected()) {
-      s.requestND();
+    if(!c.connected()) {
+      c.requestND();
 
       statusSent = false;
     }

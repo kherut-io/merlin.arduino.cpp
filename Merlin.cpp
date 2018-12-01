@@ -28,6 +28,36 @@ Merlin::Client::Client() {
     Serial.println("Created");
 }
 
+void Merlin::Client::_append(char* s, char c) {
+    int len = strlen(s);
+
+    s[len] = c;
+    s[len + 1] = '\0';
+}
+
+char* Merlin::Client::_split(char* str, char delimiter, int index) {
+    char* ret = (char*) malloc(strlen(str) * sizeof(char));
+    bzero(ret, strlen(str));
+
+    int delimitersPassed = 0;
+
+    for(int i = 0; i < strlen(str); i++) {
+        if(str[i] == delimiter) {
+            if(index == delimitersPassed)
+                return ret;
+
+            delimitersPassed++;
+
+            memset(ret, 0, sizeof ret);
+        }
+
+        if(delimitersPassed == index && str[i] != delimiter)
+            _append(ret, str[i]);
+    }
+
+    return ret;
+}
+
 void Merlin::Client::setUp(char* merlinBrainName, unsigned short int merlinBrainPort, bool resetSettings, char* deviceName) {
     if(strcmp(deviceName, "") != 0)
         strcpy(_deviceName, deviceName);
@@ -67,7 +97,9 @@ void Merlin::Client::runWFM() {
 
 void Merlin::Client::runHC() {
     _hc = new HTTPClient();
+}
 
+void Merlin::Client::requestND() {
     char url[256];
     bzero(url, 256);
 
@@ -87,28 +119,111 @@ void Merlin::Client::runHC() {
     strcat(url, "/CLIENT");
 
     _hc->begin(url);
-}
 
-char* Merlin::Client::requestND() {
-    int code = _hc->GET();
-
-    Serial.print("HTTP code: ");
-    Serial.println(code);
-    Serial.print("HTTP code (string): ");
-    Serial.println(_hc->errorToString(code).c_str());
+    _httpCode = _hc->GET();
 
     char content[256];
     bzero(content, 256);
 
-    if(code > 0)
+    if(_httpCode > 0)
         strcpy(content, _hc->getString().c_str());
 
     _hc->end();
 
-    Serial.print("(LIB) Response: ");
-    Serial.println(content);
+    char portStr[6];
+    bzero(portStr, 6);
 
-    return content;
+    strcpy(_id, _split(content, '!', 0));
+    strcpy(portStr, _split(content, '!', 1));
+
+    _tcpPort = atoi(portStr);
+}
+
+void Merlin::Client::begin() {
+    _tcpServer = new WiFiServer(_tcpPort);
+    _tcpServer->begin();
+}
+
+void Merlin::Client::connect() {
+    _tcpClient.connect(_merlinBrainName, _tcpPort);
+}
+
+void Merlin::Client::status(char* value) {
+    char url[256];
+    bzero(url, 256);
+
+    char mbPortStr[8];
+    bzero(mbPortStr, 8);
+
+    sprintf(mbPortStr, "%hu", _merlinBrainPort);
+
+    strcat(url, "http://");
+    strcat(url, _merlinBrainName);
+    strcat(url, ":");
+    strcat(url, mbPortStr);
+    strcat(url, "/control/devices/status/");
+    strcat(url, _id);
+    strcat(url, "/");
+    strcat(url, value);
+
+    _hc->begin(url);
+
+    _httpCode = _hc->GET();
+
+    char content[256];
+    bzero(content, 256);
+
+    if(_httpCode != 200) {
+        if(strcmp(content, "OK") != 0) {
+            Serial.print("HTTP code: ");
+            Serial.println(_httpCode);
+            Serial.print("Response: ");
+            Serial.println(content);
+        }
+    }
+
+    _hc->end();
+}
+
+int Merlin::Client::readBytes(char* buffer, int length) {
+    int i;
+
+    for(i = 0; available() > 0 && i < length; i++)
+        buffer[i] = read();
+
+    return i;
+}
+
+bool Merlin::Client::connected() {
+    return _tcpClient.connected();
+}
+
+int Merlin::Client::available() {
+    return _tcpClient.available();
+}
+
+int Merlin::Client::write(char val) {
+    return _tcpClient.write(val);
+}
+
+int Merlin::Client::write(String str) {
+    int len = str.length();
+
+    char buf[len + 1];
+    bzero(buf, len + 1);
+
+    for(int i = 0; i < len; i++)
+        buf[i] = str[i];
+
+    return write(buf, len);
+}
+
+int Merlin::Client::write(char* buf, int len) {
+    return _tcpClient.write(buf, len);
+}
+
+char Merlin::Client::read() {
+    return _tcpClient.read();
 }
 
 char* Merlin::Client::getDeviceName() {
@@ -117,6 +232,19 @@ char* Merlin::Client::getDeviceName() {
 
 char* Merlin::Client::getIP() {
     return _localIP;
+}
+
+char* Merlin::Client::getID() {
+    return _id;
+}
+
+String Merlin::Client::readString() {
+    String ret;
+
+    while(available() > 0)
+        ret.concat(read());
+
+    return ret;
 }
 
 //SERVER
@@ -201,7 +329,9 @@ void Merlin::Server::runWFM() {
 
 void Merlin::Server::runHC() {
     _hc = new HTTPClient();
+}
 
+void Merlin::Server::requestND() {
     char url[256];
     bzero(url, 256);
 
@@ -221,9 +351,7 @@ void Merlin::Server::runHC() {
     strcat(url, "/SERVER");
 
     _hc->begin(url);
-}
 
-void Merlin::Server::requestND() {
     _httpCode = _hc->GET();
 
     char content[256];
